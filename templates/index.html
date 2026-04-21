@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>FraudShield ML — Credit Card Fraud Detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════════ */
+:root{
+  --bg:       #07080d;
+  --bg2:      #0d0f18;
+  --bg3:      #12151f;
+  --bg4:      #181c29;
+  --border:   #1e2235;
+  --border2:  #262a3e;
+  --text:     #e8eaf0;
+  --muted:    #6b7090;
+  --muted2:   #4a4f6a;
+  --accent:   #6c63ff;
+  --accent2:  #8b85ff;
+  --green:    #22d3a3;
+  --green-bg: rgba(34,211,163,.1);
+  --red:      #ff4d6d;
+  --red-bg:   rgba(255,77,109,.1);
+  --amber:    #ffb547;
+  --amber-bg: rgba(255,181,71,.1);
+  --blue:     #3b9eff;
+  --mono:     'DM Mono', monospace;
+  --sans:     'DM Sans', sans-serif;
+  --display:  'Syne', sans-serif;
+  --radius:   12px;
+  --radius-sm:8px;
+  --shadow:   0 4px 24px rgba(0,0,0,.4);
+  --shadow-lg:0 8px 40px rgba(0,0,0,.6);
+  --glow-accent: 0 0 20px rgba(108,99,255,.3);
+  --glow-red:    0 0 20px rgba(255,77,109,.3);
+  --glow-green:  0 0 20px rgba(34,211,163,.25);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;overflow:hidden;}
+
+/* ═══════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════ */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ═══════════════════════════════════════════════════
+   LOGIN SCREEN
+═══════════════════════════════════════════════════ */
+#loginScreen{
+  position:fixed;inset:0;z-index:1000;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(108,99,255,.18) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 90% 90%,  rgba(34,211,163,.08) 0%, transparent 60%);
+}
+.login-box{
+  width:440px;
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  padding:48px 40px;
+  box-shadow:var(--shadow-lg), 0 0 60px rgba(108,99,255,.12);
+  animation:fadeUp .5s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+.login-logo{
+  display:flex;align-items:center;gap:12px;margin-bottom:36px;
+}
+.login-logo-icon{
+  width:44px;height:44px;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;box-shadow:var(--glow-accent);
+}
+.login-logo-text{font-family:var(--display);font-size:20px;font-weight:700;color:var(--text)}
+.login-logo-text span{color:var(--accent)}
+.login-title{font-family:var(--display);font-size:26px;font-weight:700;margin-bottom:6px}
+.login-sub{color:var(--muted);font-size:13px;margin-bottom:32px}
+.lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.inp{
+  width:100%;background:var(--bg4);
+  border:1px solid var(--border2);
+  border-radius:var(--radius-sm);
+  color:var(--text);font-size:14px;font-family:var(--sans);
+  padding:12px 14px;outline:none;transition:.2s;
+}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,.15)}
+.inp::placeholder{color:var(--muted2)}
+.field{margin-bottom:18px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px 20px;border-radius:var(--radius-sm);
+  font-family:var(--sans);font-size:14px;font-weight:600;
+  cursor:pointer;border:none;transition:.2s;white-space:nowrap;
+}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;width:100%}
+.btn-primary:hover{opacity:.9;box-shadow:var(--glow-accent)}
+.btn-primary:active{transform:scale(.98)}
+.login-hint{margin-top:20px;padding:14px;background:var(--bg4);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.login-hint-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.hint-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.hint-row code{font-family:var(--mono);font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--accent2)}
+#loginError{display:none;margin-top:12px;padding:10px 14px;background:var(--red-bg);border:1px solid rgba(255,77,109,.3);border-radius:var(--radius-sm);color:var(--red);font-size:13px}
+
+/* ═══════════════════════════════════════════════════
+   APP LAYOUT
+═══════════════════════════════════════════════════ */
+#app{display:none;height:100vh;overflow:hidden;}
+.layout{display:flex;height:100vh;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{
+  width:230px;flex-shrink:0;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.sidebar-brand{
+  padding:20px 20px 16px;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--border);
+}
+.brand-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;box-shadow:var(--glow-accent);flex-shrink:0;
+}
+.brand-name{font-family:var(--display);font-size:16px;font-weight:700}
+.brand-name span{color:var(--accent)}
+.brand-version{font-size:10px;color:var(--muted);font-family:var(--mono)}
+
+.sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.nav-section{margin-bottom:20px}
+.nav-section-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted2);padding:0 10px;margin-bottom:6px;
+}
+.nav-item{
+  width:100%;display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:var(--radius-sm);
+  background:none;border:none;color:var(--muted);
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  cursor:pointer;transition:.15s;text-align:left;position:relative;
+}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(108,99,255,.12);color:var(--accent2)}
+.nav-item.active::before{
+  content:'';position:absolute;left:0;top:25%;bottom:25%;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0;
+}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{
+  margin-left:auto;background:var(--red);color:#fff;
+  font-size:10px;font-weight:700;min-width:18px;height:18px;
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  padding:0 4px;animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+.sidebar-user{
+  padding:14px 16px;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.user-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;flex-shrink:0;
+  font-family:var(--display);
+}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:11px;color:var(--muted);text-transform:capitalize}
+.logout-btn{
+  background:none;border:none;color:var(--muted);
+  cursor:pointer;font-size:16px;padding:4px;
+  border-radius:6px;transition:.15s;
+}
+.logout-btn:hover{color:var(--red);background:var(--red-bg)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.topbar{
+  height:56px;padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;
+}
+.page-title{font-family:var(--display);font-size:17px;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.live-badge{
+  display:flex;align-items:center;gap:6px;
+  background:var(--green-bg);border:1px solid rgba(34,211,163,.25);
+  border-radius:20px;padding:5px 12px;font-size:12px;color:var(--green);font-weight:600;
+}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.time-display{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.btn-sm{padding:7px 14px;font-size:12px;}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:var(--red-bg);border:1px solid rgba(255,77,109,.3);color:var(--red)}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-success{background:var(--green-bg);border:1px solid rgba(34,211,163,.3);color:var(--green)}
+.btn-success:hover{background:var(--green);color:#111}
+
+.content{flex:1;overflow-y:auto;padding:24px;}
+.page{display:none}
+.page.active{display:block}
+
+/* ═══════════════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════════════ */
+.card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;
+}
+.card-header{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-title{font-family:var(--display);font-size:14px;font-weight:600}
+.card-body{padding:20px}
+
+/* STAT CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;
+  position:relative;overflow:hidden;transition:.2s;
+}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.stat-card::after{
+  content:'';position:absolute;inset:0;
+  background:var(--card-glow,transparent);
+  pointer-events:none;border-radius:var(--radius);
+}
+.stat-card.fraud{--card-glow:radial-gradient(ellipse at top right,rgba(255,77,109,.06),transparent 60%)}
+.stat-card.safe{--card-glow:radial-gradient(ellipse at top right,rgba(34,211,163,.05),transparent 60%)}
+.stat-card.accent{--card-glow:radial-gradient(ellipse at top right,rgba(108,99,255,.06),transparent 60%)}
+.stat-icon{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;margin-bottom:16px;
+}
+.stat-val{font-family:var(--display);font-size:28px;font-weight:700;margin-bottom:4px;line-height:1}
+.stat-lbl{font-size:12px;color:var(--muted);font-weight:500}
+.stat-delta{margin-top:10px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.delta-up{color:var(--red)}
+.delta-dn{color:var(--green)}
+
+/* GRID LAYOUTS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-60-40{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:16px}
+.grid-40-60{display:grid;grid-template-columns:1fr 1.5fr;gap:16px;margin-bottom:16px}
+
+/* ═══════════════════════════════════════════════════
+   DETECTION FORM
+═══════════════════════════════════════════════════ */
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.form-section-title{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);margin:16px 0 10px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+.field label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:block}
+.select{background:var(--bg4);}
+.input-row{display:flex;gap:10px}
+
+/* RESULT CARD */
+.result-box{
+  display:none;
+  border-radius:var(--radius);padding:20px;
+  border:1px solid;margin-top:16px;
+  animation:fadeUp .3s ease;
+}
+.result-box.fraud-result{background:var(--red-bg);border-color:rgba(255,77,109,.3)}
+.result-box.safe-result{background:var(--green-bg);border-color:rgba(34,211,163,.3)}
+.result-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:20px;
+  font-size:13px;font-weight:700;font-family:var(--display);
+  margin-bottom:12px;
+}
+.result-badge.fraud{background:var(--red);color:#fff}
+.result-badge.safe{background:var(--green);color:#111}
+.result-details{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.result-detail{background:rgba(255,255,255,.05);border-radius:var(--radius-sm);padding:12px;text-align:center}
+.result-detail-val{font-family:var(--display);font-size:20px;font-weight:700;margin-bottom:2px}
+.result-detail-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.prob-bar-outer{height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-top:10px}
+.prob-bar-inner{height:100%;border-radius:4px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.alert-sent-notice{
+  margin-top:12px;padding:10px 14px;
+  border-radius:var(--radius-sm);background:rgba(255,255,255,.05);
+  font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;
+}
+
+/* ═══════════════════════════════════════════════════
+   TRANSACTIONS TABLE
+═══════════════════════════════════════════════════ */
+.txn-table{width:100%;border-collapse:collapse}
+.txn-table th{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--border);
+  text-align:left;
+}
+.txn-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px}
+.txn-table tr:last-child td{border-bottom:none}
+.txn-table tr:hover td{background:var(--bg3)}
+.txn-id{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.risk-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;
+}
+.risk-badge.HIGH{background:var(--red-bg);color:var(--red)}
+.risk-badge.MEDIUM{background:var(--amber-bg);color:var(--amber)}
+.risk-badge.LOW{background:var(--green-bg);color:var(--green)}
+.fraud-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+.fraud-dot.yes{background:var(--red);box-shadow:0 0 6px var(--red)}
+.fraud-dot.no{background:var(--green)}
+
+/* ═══════════════════════════════════════════════════
+   CUSTOMER CARDS
+═══════════════════════════════════════════════════ */
+.customers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.customer-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;
+  transition:.2s;cursor:pointer;
+}
+.customer-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--shadow)}
+.customer-card.blocked{border-color:rgba(255,77,109,.25);background:rgba(255,77,109,.03)}
+.cust-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.cust-avatar{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:18px;font-weight:700;flex-shrink:0;
+}
+.cust-avatar.blocked{background:linear-gradient(135deg,var(--red),#c2185b)}
+.cust-name{font-weight:700;font-size:14px;margin-bottom:3px}
+.cust-email{font-size:11px;color:var(--muted)}
+.cust-badges{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.status-badge{
+  padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;
+}
+.status-badge.active{background:var(--green-bg);color:var(--green)}
+.status-badge.blocked{background:var(--red-bg);color:var(--red)}
+.cust-info-row{
+  display:flex;justify-content:space-between;
+  font-size:12px;color:var(--muted);padding:6px 0;
+  border-bottom:1px solid var(--border);
+}
+.cust-info-row:last-of-type{border-bottom:none}
+.cust-info-row strong{color:var(--text);font-weight:600}
+.cust-actions{display:flex;gap:8px;margin-top:14px}
+.cust-actions .btn{flex:1;font-size:11px;padding:7px 10px}
+
+/* CUSTOMER MODAL */
+.modal-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:16px;padding:28px;width:480px;max-width:95vw;
+  box-shadow:var(--shadow-lg);animation:fadeUp .25s ease;
+}
+.modal-title{font-family:var(--display);font-size:18px;font-weight:700;margin-bottom:20px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+
+/* ═══════════════════════════════════════════════════
+   ALERTS
+═══════════════════════════════════════════════════ */
+.alert-item{
+  display:flex;gap:14px;padding:16px;
+  border-radius:var(--radius);border:1px solid rgba(255,77,109,.2);
+  background:rgba(255,77,109,.05);margin-bottom:10px;
+  animation:fadeUp .3s ease;transition:.2s;
+}
+.alert-item.read{border-color:var(--border);background:var(--bg3);opacity:.7}
+.alert-icon{
+  width:38px;height:38px;border-radius:10px;
+  background:var(--red);display:flex;align-items:center;
+  justify-content:center;font-size:16px;flex-shrink:0;box-shadow:var(--glow-red);
+}
+.alert-icon.read{background:var(--bg4);box-shadow:none}
+.alert-title{font-size:13px;font-weight:700;color:var(--red);margin-bottom:3px}
+.alert-title.read{color:var(--muted)}
+.alert-sub{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.alert-contact{font-size:11px;color:var(--muted);margin-top:5px}
+.alert-mark{
+  margin-left:auto;background:none;border:1px solid var(--border2);
+  color:var(--muted);font-size:11px;padding:4px 10px;border-radius:6px;
+  cursor:pointer;transition:.15s;flex-shrink:0;height:28px;
+  font-family:var(--sans);
+}
+.alert-mark:hover{background:var(--bg4);color:var(--text)}
+
+/* ═══════════════════════════════════════════════════
+   ANALYTICS
+═══════════════════════════════════════════════════ */
+.chart-container{position:relative;height:180px;width:100%}
+canvas{border-radius:8px}
+.feature-list{list-style:none}
+.feature-item{margin-bottom:10px}
+.feature-header{display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px}
+.feature-name{color:var(--text)}
+.feature-pct{color:var(--accent);font-weight:700;font-family:var(--mono)}
+.feature-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.feature-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 1s ease}
+.model-metric{
+  background:var(--bg3);border-radius:var(--radius-sm);padding:14px;text-align:center;
+}
+.metric-val{font-family:var(--display);font-size:26px;font-weight:700;color:var(--green)}
+.metric-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+
+/* ═══════════════════════════════════════════════════
+   MISC
+═══════════════════════════════════════════════════ */
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+.empty-icon{font-size:36px;margin-bottom:10px}
+.tag{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;padding:2px 8px;border-radius:5px;
+  background:var(--bg4);border:1px solid var(--border2);color:var(--muted);
+}
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  padding:14px 20px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:var(--shadow-lg);
+  transform:translateY(80px);opacity:0;
+  transition:.3s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.fraud-toast{background:#ff4d6d;color:#fff}
+.toast.safe-toast{background:#22d3a3;color:#111}
+.toast.info-toast{background:var(--bg3);color:var(--text);border:1px solid var(--border2)}
+.spinner{
+  width:28px;height:28px;border:3px solid var(--border2);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin .7s linear infinite;margin:0 auto;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay{
+  position:absolute;inset:0;background:rgba(7,8,13,.7);
+  display:none;align-items:center;justify-content:center;
+  border-radius:var(--radius);z-index:10;
+}
+.loading-overlay.show{display:flex}
+
+.section-header{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
+}
+.section-header h2{font-family:var(--display);font-size:16px;font-weight:700}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{
+  padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;
+  background:var(--bg3);border:1px solid var(--border2);color:var(--muted);
+  cursor:pointer;transition:.15s;
+}
+.filter-btn.active{background:rgba(108,99,255,.15);border-color:var(--accent);color:var(--accent)}
+
+/* Add Customer Form in Modal */
+#addCustomerModal .modal{width:540px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ LOGIN SCREEN ═══════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🛡</div>
+      <div>
+        <div class="login-logo-text">Fraud<span>Shield</span> ML</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">v3.0 · Real-time Detection</div>
+      </div>
+    </div>
+    <div class="login-title">Welcome back</div>
+    <div class="login-sub">Sign in to access the fraud detection dashboard</div>
+    <div class="field">
+      <div class="lbl">Username</div>
+      <input class="inp" id="loginUser" placeholder="Enter username" autocomplete="username"/>
+    </div>
+    <div class="field">
+      <div class="lbl">Password</div>
+      <input class="inp" id="loginPass" type="password" placeholder="Enter password" autocomplete="current-password"/>
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">Sign In →</button>
+    <div id="loginError">❌ Invalid username or password</div>
+    <div class="login-hint">
+      <div class="login-hint-title">Demo Credentials</div>
+      <div class="hint-row"><span>Admin</span><code>admin / admin123</code></div>
+      <div class="hint-row"><span>User</span><code>ravi / ravi123</code></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN APP ═══════════════ -->
+<div id="app">
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">🛡</div>
+        <div>
+          <div class="brand-name">Fraud<span>Shield</span></div>
+          <div class="brand-version">ML v3.0</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <button class="nav-item active" onclick="showPage('dashboard',this)" id="navDash">
+            <span class="nav-icon">⬛</span> Dashboard
+          </button>
+          <button class="nav-item" onclick="showPage('detect',this)">
+            <span class="nav-icon">🔍</span> Detect Fraud
+          </button>
+          <button class="nav-item" onclick="showPage('transactions',this)">
+            <span class="nav-icon">⚡</span> Transactions
+          </button>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Management</div>
+          <button class="nav-item" onclick="showPage('alerts',this)" id="navAlerts">
+            <span class="nav-icon">🔔</span> Alerts
+            <span class="nav-badge" id="alertBadge" style="display:none">0</span>
+          </button>
+          <button class="nav-item" onclick="showPage('customers',this)" id="navCustomers">
+            <span class="nav-icon">👥</span> Customers
+          </button>
+          <button class="nav-item" onclick="showPage('blocked',this)">
+            <span class="nav-icon">🚫</span> Blocked Cards
+          </button>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <button class="nav-item" onclick="showPage('analytics',this)">
+            <span class="nav-icon">📊</span> Analytics
+          </button>
+        </div>
+      </nav>
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">A</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebarName">Loading…</div>
+          <div class="user-role" id="sidebarRole">—</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()" title="Logout">⏻</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+      <div class="topbar">
+        <div class="page-title" id="topbarTitle">Dashboard</div>
+        <div class="topbar-right">
+          <div class="live-badge"><span class="live-dot"></span>Live</div>
+          <div class="time-display" id="clockDisplay">--:--:--</div>
+          <button class="btn btn-outline btn-sm" onclick="loadPage(currentPage)">↻ Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="showPage('detect',document.querySelector('[onclick*=detect]'))">+ New Detection</button>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- ═══ DASHBOARD ═══ -->
+        <div class="page active" id="page-dashboard">
+          <div class="stats-grid" id="statsGrid">
+            <div class="stat-card accent">
+              <div class="stat-icon" style="background:rgba(108,99,255,.15);color:var(--accent)">⚡</div>
+              <div class="stat-val" id="s-total">—</div>
+              <div class="stat-lbl">Total Transactions</div>
+              <div class="stat-delta"><span>Today's activity</span></div>
+            </div>
+            <div class="stat-card fraud">
+              <div class="stat-icon" style="background:rgba(255,77,109,.1);color:var(--red)">⚠</div>
+              <div class="stat-val" style="color:var(--red)" id="s-fraud">—</div>
+              <div class="stat-lbl">Fraudulent</div>
+              <div class="stat-delta"><span class="delta-up" id="s-rate">—%</span> fraud rate</div>
+            </div>
+            <div class="stat-card safe">
+              <div class="stat-icon" style="background:rgba(34,211,163,.1);color:var(--green)">✓</div>
+              <div class="stat-val" style="color:var(--green)" id="s-safe">—</div>
+              <div class="stat-lbl">Safe Transactions</div>
+              <div class="stat-delta"><span class="delta-dn">Protected</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(255,181,71,.1);color:var(--amber)">🛡</div>
+              <div class="stat-val" style="color:var(--amber)" id="s-blocked">—</div>
+              <div class="stat-lbl">Blocked Cards</div>
+              <div class="stat-delta"><span id="s-alerts">—</span> alerts sent</div>
+            </div>
+          </div>
+
+          <div class="grid-60-40">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">📈 Transaction Feed (Live)</div>
+                <div class="tag">Last 10</div>
+              </div>
+              <div class="card-body" style="padding:0;overflow:auto;max-height:280px">
+                <table class="txn-table" id="dashTxnTable">
+                  <thead><tr>
+                    <th>ID</th><th>Customer</th><th>Amount</th><th>Status</th><th>Risk</th><th>Time</th>
+                  </tr></thead>
+                  <tbody id="dashTxnBody">
+                    <tr><td colspan="6" class="empty">Loading…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🔔 Recent Alerts</div>
+                <button class="btn btn-outline btn-sm" onclick="showPage('alerts',document.getElementById('navAlerts'))">View All</button>
+              </div>
+              <div class="card-body" id="dashAlerts" style="max-height:280px;overflow-y:auto;padding:12px">
+                <div class="empty"><div class="empty-icon">🔔</div>No alerts yet</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="card">
+              <div class="card-header"><div class="card-title">🎯 Risk Distribution</div></div>
+              <div class="card-body"><canvas id="riskChart" height="160"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">📅 Daily Trend</div></div>
+              <div class="card-body"><canvas id="trendChart" height="160"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">🤖 Model Performance</div></div>
+              <div class="card-body">
+                <div class="grid-2" id="modelMetrics" style="gap:8px">
+                  <div class="model-metric"><div class="metric-val" id="m-acc">—</div><div class="metric-lbl">Accuracy</div></div>
+                  <div class="model-metric"><div class="metric-val" id="m-prec">—</div><div class="metric-lbl">Precision</div></div>
+                  <div class="model-metric"><div class="metric-val" id="m-rec">—</div><div class="metric-lbl">Recall</div></div>
+                  <div class="model-metric"><div class="metric-val" id="m-f1">—</div><div class="metric-lbl">F1 Score</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ DETECT ═══ -->
+        <div class="page" id="page-detect">
+          <div class="grid-60-40">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🔍 Transaction Analysis</div>
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-outline btn-sm" onclick="loadSample('legit')">Load Safe Sample</button>
+                  <button class="btn btn-outline btn-sm" onclick="loadSample('fraud')">Load Fraud Sample</button>
+                </div>
+              </div>
+              <div class="card-body" style="position:relative">
+                <div class="loading-overlay" id="detectLoader"><div class="spinner"></div></div>
+
+                <div class="form-section-title">👤 Customer Information</div>
+                <div class="form-grid-2">
+                  <div class="field">
+                    <label>Customer</label>
+                    <select class="inp select" id="f-cid" onchange="fillCustomerData(this.value)">
+                      <option value="">— Select Customer —</option>
+                      <option value="C001">C001 · Ravi Kumar</option>
+                      <option value="C002">C002 · Priya Sharma</option>
+                      <option value="C003">C003 · Arjun Mehta</option>
+                      <option value="C004">C004 · Meera Nair</option>
+                      <option value="C005">C005 · Suresh Babu</option>
+                      <option value="C006">C006 · Divya Menon</option>
+                      <option value="C007">C007 · Kiran Rao</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Full Name</label>
+                    <input class="inp" id="f-name" placeholder="Customer name"/>
+                  </div>
+                  <div class="field">
+                    <label>Email (for alert)</label>
+                    <input class="inp" id="f-email" type="email" placeholder="email@example.com"/>
+                  </div>
+                  <div class="field">
+                    <label>Phone (for SMS alert)</label>
+                    <input class="inp" id="f-phone" type="tel" placeholder="+91 9876543210"/>
+                  </div>
+                </div>
+
+                <div class="form-section-title">💳 Transaction Details</div>
+                <div class="form-grid-3">
+                  <div class="field">
+                    <label>Amount (₹)</label>
+                    <input class="inp" id="f-amount" type="number" step="0.01" placeholder="0.00"/>
+                  </div>
+                  <div class="field">
+                    <label>Location</label>
+                    <input class="inp" id="f-location" placeholder="City / Country"/>
+                  </div>
+                  <div class="field">
+                    <label>Merchant</label>
+                    <input class="inp" id="f-merchant" placeholder="Merchant name"/>
+                  </div>
+                </div>
+
+                <div class="form-section-title">📐 PCA Features (ML Model Input)</div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+                  These are PCA-transformed features from the transaction data. Load a sample to see typical values.
+                </div>
+                <div class="form-grid-3">
+                  <div class="field"><label>V1</label><input class="inp" id="f-v1" type="number" step="0.001" placeholder="0.000"/></div>
+                  <div class="field"><label>V4</label><input class="inp" id="f-v4" type="number" step="0.001" placeholder="0.000"/></div>
+                  <div class="field"><label>V12</label><input class="inp" id="f-v12" type="number" step="0.001" placeholder="0.000"/></div>
+                  <div class="field"><label>V14 ⭐</label><input class="inp" id="f-v14" type="number" step="0.001" placeholder="0.000"/></div>
+                  <div class="field"><label>V17</label><input class="inp" id="f-v17" type="number" step="0.001" placeholder="0.000"/></div>
+                </div>
+
+                <div style="display:flex;gap:10px;margin-top:6px">
+                  <button class="btn btn-primary" style="flex:1" onclick="runDetection()">🔍 Analyze Transaction</button>
+                  <button class="btn btn-outline" onclick="clearForm()">Clear</button>
+                </div>
+
+                <div id="resultBox" class="result-box">
+                  <div id="resultBadge" class="result-badge">—</div>
+                  <div id="resultMsg" style="font-size:13px;color:var(--muted)"></div>
+                  <div class="prob-bar-outer"><div id="resultBar" class="prob-bar-inner" style="width:0%"></div></div>
+                  <div class="result-details">
+                    <div class="result-detail">
+                      <div class="result-detail-val" id="r-prob">—</div>
+                      <div class="result-detail-lbl">Fraud Prob.</div>
+                    </div>
+                    <div class="result-detail">
+                      <div class="result-detail-val" id="r-risk">—</div>
+                      <div class="result-detail-lbl">Risk Level</div>
+                    </div>
+                    <div class="result-detail">
+                      <div class="result-detail-val" id="r-txn">—</div>
+                      <div class="result-detail-lbl">Txn ID</div>
+                    </div>
+                  </div>
+                  <div id="alertNotice" class="alert-sent-notice" style="display:none"></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card" style="margin-bottom:16px">
+                <div class="card-header"><div class="card-title">👤 Customer Profile</div></div>
+                <div class="card-body" id="profileBox">
+                  <div class="empty" style="padding:20px">Select a customer</div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header"><div class="card-title">⭐ Feature Importance</div></div>
+                <div class="card-body" id="featureBox">
+                  <div class="empty" style="padding:20px">Run a detection first</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ TRANSACTIONS ═══ -->
+        <div class="page" id="page-transactions">
+          <div class="section-header">
+            <h2>⚡ All Transactions</h2>
+            <button class="btn btn-outline btn-sm" onclick="exportTxns()">⬇ Export CSV</button>
+          </div>
+          <div class="filter-row">
+            <button class="filter-btn active" onclick="filterTxns('all',this)">All</button>
+            <button class="filter-btn" onclick="filterTxns('fraud',this)">Fraud Only</button>
+            <button class="filter-btn" onclick="filterTxns('safe',this)">Safe Only</button>
+            <button class="filter-btn" onclick="filterTxns('HIGH',this)">HIGH Risk</button>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding:0;overflow-x:auto">
+              <table class="txn-table" id="mainTxnTable">
+                <thead><tr>
+                  <th>Txn ID</th><th>Customer</th><th>Amount</th>
+                  <th>Status</th><th>Risk</th><th>Probability</th>
+                  <th>Location</th><th>Merchant</th><th>Time</th>
+                </tr></thead>
+                <tbody id="mainTxnBody">
+                  <tr><td colspan="9" class="empty">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ ALERTS ═══ -->
+        <div class="page" id="page-alerts">
+          <div class="section-header">
+            <h2>🔔 Fraud Alerts</h2>
+            <button class="btn btn-outline btn-sm" onclick="markAllRead()">Mark All Read</button>
+          </div>
+          <div id="alertsList">
+            <div class="empty"><div class="empty-icon">🔔</div>No fraud alerts yet</div>
+          </div>
+        </div>
+
+        <!-- ═══ CUSTOMERS ═══ -->
+        <div class="page" id="page-customers">
+          <div class="section-header">
+            <h2>👥 Customer Management</h2>
+            <button class="btn btn-primary btn-sm" onclick="openAddCustomer()">+ Add Customer</button>
+          </div>
+          <div class="customers-grid" id="customersGrid">
+            <div class="empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- ═══ BLOCKED ═══ -->
+        <div class="page" id="page-blocked">
+          <div class="section-header">
+            <h2>🚫 Blocked Cards</h2>
+            <div class="tag" id="blockedCount">0 blocked</div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding:0;overflow-x:auto">
+              <table class="txn-table">
+                <thead><tr>
+                  <th>Card Number</th><th>Customer</th><th>Reason</th><th>Date</th><th>Last Amount</th><th>Action</th>
+                </tr></thead>
+                <tbody id="blockedBody">
+                  <tr><td colspan="6" class="empty">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ ANALYTICS ═══ -->
+        <div class="page" id="page-analytics">
+          <div class="section-header"><h2>📊 Analytics & Insights</h2></div>
+
+          <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+            <div class="model-metric stat-card"><div class="metric-val" id="a-acc">—</div><div class="metric-lbl">Model Accuracy</div></div>
+            <div class="model-metric stat-card"><div class="metric-val" id="a-prec">—</div><div class="metric-lbl">Precision</div></div>
+            <div class="model-metric stat-card"><div class="metric-val" id="a-rec">—</div><div class="metric-lbl">Recall</div></div>
+            <div class="model-metric stat-card"><div class="metric-val" id="a-f1">—</div><div class="metric-lbl">F1 Score</div></div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><div class="card-title">📅 7-Day Fraud vs Safe</div></div>
+              <div class="card-body"><canvas id="analyticsBarChart" height="180"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">⭐ Feature Importance</div></div>
+              <div class="card-body"><ul class="feature-list" id="featureImportanceList"></ul></div>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="card">
+              <div class="card-header"><div class="card-title">🎯 Risk Breakdown</div></div>
+              <div class="card-body"><canvas id="analyticsRiskChart" height="180"></canvas></div>
+            </div>
+            <div class="card col-span-2">
+              <div class="card-header"><div class="card-title">💰 Financial Summary</div></div>
+              <div class="card-body">
+                <div class="grid-3">
+                  <div class="result-detail" style="background:var(--bg3)">
+                    <div class="result-detail-val" id="a-total-amt" style="font-size:16px">—</div>
+                    <div class="result-detail-lbl">Total Volume</div>
+                  </div>
+                  <div class="result-detail" style="background:var(--red-bg)">
+                    <div class="result-detail-val" id="a-fraud-amt" style="font-size:16px;color:var(--red)">—</div>
+                    <div class="result-detail-lbl">Fraud Amount</div>
+                  </div>
+                  <div class="result-detail" style="background:var(--green-bg)">
+                    <div class="result-detail-val" id="a-saved" style="font-size:16px;color:var(--green)">—</div>
+                    <div class="result-detail-lbl">Amount Protected</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </main>
+  </div>
+</div>
+
+<!-- ═══ ADD CUSTOMER MODAL ═══ -->
+<div class="modal-overlay" id="addCustomerModal">
+  <div class="modal">
+    <div class="modal-title">➕ Add New Customer</div>
+    <div class="modal-grid">
+      <div class="field"><label class="lbl">Full Name *</label><input class="inp" id="nc-name" placeholder="Full name"/></div>
+      <div class="field"><label class="lbl">Email *</label><input class="inp" id="nc-email" type="email" placeholder="email@example.com"/></div>
+      <div class="field"><label class="lbl">Phone</label><input class="inp" id="nc-phone" type="tel" placeholder="+91 9876543210"/></div>
+      <div class="field"><label class="lbl">Initial Balance (₹)</label><input class="inp" id="nc-balance" type="number" placeholder="0.00"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAddCustomer()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddCustomer()" style="width:auto">Add Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toastEl"></div>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let currentPage = 'dashboard';
+let userRole    = 'customer';
+let userName    = '';
+let allTxns     = [];
+let allAlerts   = [];
+let chartInstances = {};
+
+const CUSTOMERS_LOCAL = {
+  C001:{name:'Ravi Kumar',   email:'ravi@example.com',   phone:'+91 9876543210',card:'**** **** **** 4521',status:'active', risk:'LOW'},
+  C002:{name:'Priya Sharma', email:'priya@example.com',  phone:'+91 8765432109',card:'**** **** **** 7832',status:'active', risk:'MEDIUM'},
+  C003:{name:'Arjun Mehta',  email:'arjun@example.com',  phone:'+91 7654321098',card:'**** **** **** 2341',status:'blocked',risk:'HIGH'},
+  C004:{name:'Meera Nair',   email:'meera@example.com',  phone:'+91 6543210987',card:'**** **** **** 9087',status:'active', risk:'LOW'},
+  C005:{name:'Suresh Babu',  email:'suresh@example.com', phone:'+91 5432109876',card:'**** **** **** 6543',status:'active', risk:'MEDIUM'},
+  C006:{name:'Divya Menon',  email:'divya@example.com',  phone:'+91 4321098765',card:'**** **** **** 1122',status:'active', risk:'LOW'},
+  C007:{name:'Kiran Rao',    email:'kiran@example.com',  phone:'+91 3210987654',card:'**** **** **** 3344',status:'active', risk:'HIGH'},
+};
+
+// ═══════════════════════════════════════════════════════
+//  CLOCK
+// ═══════════════════════════════════════════════════════
+function updateClock(){
+  document.getElementById('clockDisplay').textContent =
+    new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ═══════════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════════
+async function doLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  if(!u || !p){ showError(); return; }
+  try{
+    const r = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:u,password:p}),credentials:'include'});
+    const d = await r.json();
+    if(d.success){
+      userRole = d.role; userName = d.name;
+      document.getElementById('sidebarName').textContent = d.name;
+      document.getElementById('sidebarRole').textContent = d.role;
+      document.getElementById('sidebarAvatar').textContent = d.name[0];
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('app').style.display='block';
+      loadPage('dashboard');
+      toast('👋 Welcome back, '+d.name+'!','info');
+    } else {
+      document.getElementById('loginError').style.display='block';
+    }
+  } catch(e){
+    // offline mode — demo login
+    if(u==='admin'&&p==='admin123'){ bootDemo('admin','Arjun Reddy','admin@fraudshield.com','+91 9876543210'); }
+    else if(u==='ravi'&&p==='ravi123'){ bootDemo('customer','Ravi Kumar','ravi@example.com','+91 8765432109'); }
+    else if(u==='priya'&&p==='priya123'){ bootDemo('customer','Priya Sharma','priya@example.com','+91 7654321098'); }
+    else { document.getElementById('loginError').style.display='block'; }
+  }
+}
+function showError(){ document.getElementById('loginError').style.display='block'; }
+function bootDemo(role,name,email,phone){
+  userRole=role; userName=name;
+  document.getElementById('sidebarName').textContent=name;
+  document.getElementById('sidebarRole').textContent=role;
+  document.getElementById('sidebarAvatar').textContent=name[0];
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  loadPage('dashboard');
+  toast('👋 Welcome, '+name+'!','info');
+}
+async function doLogout(){
+  try{ await fetch('/api/logout',{method:'POST',credentials:'include'}); }catch(e){}
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginError').style.display='none';
+}
+document.getElementById('loginPass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('loginUser').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function showPage(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  currentPage = name;
+  const titles={dashboard:'Dashboard',detect:'Detect Fraud',transactions:'Transactions',
+    alerts:'Fraud Alerts',customers:'Customers',blocked:'Blocked Cards',analytics:'Analytics'};
+  document.getElementById('topbarTitle').textContent = titles[name] || name;
+  loadPage(name);
+}
+function loadPage(name){
+  if(name==='dashboard')    loadDashboard();
+  if(name==='transactions') loadTransactions();
+  if(name==='alerts')       loadAlerts();
+  if(name==='customers')    loadCustomers();
+  if(name==='blocked')      loadBlocked();
+  if(name==='analytics')    loadAnalytics();
+}
+
+// ═══════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════
+async function loadDashboard(){
+  try{
+    const [txnR, alertR, analR] = await Promise.all([
+      fetch('/api/transactions',{credentials:'include'}),
+      fetch('/api/alerts',{credentials:'include'}),
+      fetch('/api/analytics',{credentials:'include'})
+    ]);
+    const txns   = await txnR.json();
+    allAlerts    = await alertR.json();
+    const anal   = await analR.json();
+
+    document.getElementById('s-total').textContent   = anal.total;
+    document.getElementById('s-fraud').textContent   = anal.fraud_count;
+    document.getElementById('s-safe').textContent    = anal.safe_count;
+    document.getElementById('s-blocked').textContent = anal.blocked_cards;
+    document.getElementById('s-rate').textContent    = anal.fraud_rate+'%';
+    document.getElementById('s-alerts').textContent  = anal.alerts_sent;
+    document.getElementById('m-acc').textContent     = anal.accuracy+'%';
+    document.getElementById('m-prec').textContent    = anal.precision+'%';
+    document.getElementById('m-rec').textContent     = anal.recall+'%';
+    document.getElementById('m-f1').textContent      = anal.f1+'%';
+
+    // Txn table
+    const tbody = document.getElementById('dashTxnBody');
+    tbody.innerHTML = txns.slice(0,10).map(t=>`
+      <tr>
+        <td class="txn-id">${t.id}</td>
+        <td style="font-weight:500">${t.name}</td>
+        <td style="font-family:var(--mono)">₹${parseFloat(t.amount).toFixed(2)}</td>
+        <td><span class="fraud-dot ${t.fraud?'yes':'no'}"></span>${t.fraud?'<span style="color:var(--red);font-weight:600">FRAUD</span>':'<span style="color:var(--green)">SAFE</span>'}</td>
+        <td><span class="risk-badge ${t.risk}">${t.risk}</span></td>
+        <td style="font-family:var(--mono);color:var(--muted)">${t.time}</td>
+      </tr>`).join('');
+
+    // Alerts preview
+    const unread = allAlerts.filter(a=>!a.read);
+    const alertBadge = document.getElementById('alertBadge');
+    if(unread.length>0){ alertBadge.style.display='flex'; alertBadge.textContent=unread.length; }
+    else { alertBadge.style.display='none'; }
+
+    const dashAlerts = document.getElementById('dashAlerts');
+    if(!allAlerts.length){ dashAlerts.innerHTML='<div class="empty"><div class="empty-icon">🔔</div>No alerts yet</div>'; }
+    else {
+      dashAlerts.innerHTML = allAlerts.slice(0,4).map(a=>`
+        <div style="padding:10px;border-radius:8px;background:${a.read?'var(--bg3)':'var(--red-bg)'};border:1px solid ${a.read?'var(--border)':'rgba(255,77,109,.2)'};margin-bottom:8px">
+          <div style="font-size:12px;font-weight:700;color:${a.read?'var(--muted)':'var(--red)'}">⚠ ₹${parseFloat(a.amount).toFixed(2)} — ${a.customer}</div>
+          <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${a.id} · ${a.time}</div>
+        </div>`).join('');
+    }
+
+    // Charts
+    drawRiskChart('riskChart', anal.risk_counts);
+    drawTrendChart('trendChart', anal.daily);
+  } catch(e){
+    console.log('Dashboard load error:',e);
+    loadDashboardOffline();
+  }
+}
+
+function loadDashboardOffline(){
+  document.getElementById('s-total').textContent='10';
+  document.getElementById('s-fraud').textContent='4';
+  document.getElementById('s-safe').textContent='6';
+  document.getElementById('s-blocked').textContent='2';
+  document.getElementById('s-rate').textContent='40%';
+  document.getElementById('s-alerts').textContent='4';
+  document.getElementById('m-acc').textContent='97.8%';
+  document.getElementById('m-prec').textContent='96.2%';
+  document.getElementById('m-rec').textContent='94.5%';
+  document.getElementById('m-f1').textContent='95.3%';
+  drawRiskChart('riskChart',{HIGH:4,MEDIUM:2,LOW:4});
+  drawTrendChart('trendChart',{});
+}
+
+// ═══════════════════════════════════════════════════════
+//  CHARTS
+// ═══════════════════════════════════════════════════════
+Chart.defaults.color='#6b7090';
+Chart.defaults.borderColor='#1e2235';
+Chart.defaults.font.family="'DM Sans', sans-serif";
+
+function destroyChart(id){
+  if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+function drawRiskChart(canvasId, counts){
+  destroyChart(canvasId);
+  const ctx=document.getElementById(canvasId)?.getContext('2d');
+  if(!ctx) return;
+  chartInstances[canvasId]=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:['HIGH','MEDIUM','LOW'],
+      datasets:[{data:[counts.HIGH||0,counts.MEDIUM||0,counts.LOW||0],
+        backgroundColor:['#ff4d6d','#ffb547','#22d3a3'],
+        borderWidth:0,hoverOffset:4}]
+    },
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:12}}},cutout:'65%',
+      maintainAspectRatio:false}
+  });
+}
+function drawTrendChart(canvasId, daily){
+  destroyChart(canvasId);
+  const ctx=document.getElementById(canvasId)?.getContext('2d');
+  if(!ctx) return;
+  const keys=Object.keys(daily).reverse().slice(0,7);
+  chartInstances[canvasId]=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:keys.length?keys:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets:[
+        {label:'Fraud',data:keys.map(k=>daily[k].fraud),borderColor:'#ff4d6d',backgroundColor:'rgba(255,77,109,.08)',tension:.4,fill:true,pointRadius:3},
+        {label:'Safe', data:keys.map(k=>daily[k].safe), borderColor:'#22d3a3',backgroundColor:'rgba(34,211,163,.06)',tension:.4,fill:true,pointRadius:3}
+      ]
+    },
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8}}},
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}},
+              x:{grid:{display:false}}},maintainAspectRatio:false}
+  });
+}
+function drawBarChart(canvasId, daily){
+  destroyChart(canvasId);
+  const ctx=document.getElementById(canvasId)?.getContext('2d');
+  if(!ctx) return;
+  const keys=Object.keys(daily).reverse().slice(0,7);
+  chartInstances[canvasId]=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:keys,
+      datasets:[
+        {label:'Fraud',data:keys.map(k=>daily[k].fraud),backgroundColor:'rgba(255,77,109,.6)',borderRadius:4},
+        {label:'Safe', data:keys.map(k=>daily[k].safe), backgroundColor:'rgba(34,211,163,.5)',borderRadius:4}
+      ]
+    },
+    options:{plugins:{legend:{position:'bottom'}},
+      scales:{y:{beginAtZero:true,stacked:false,grid:{color:'rgba(255,255,255,.04)'}},
+              x:{grid:{display:false}}},maintainAspectRatio:false}
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  DETECT FORM
+// ═══════════════════════════════════════════════════════
+function fillCustomerData(cid){
+  const c = CUSTOMERS_LOCAL[cid];
+  if(!c) return;
+  document.getElementById('f-name').value  = c.name;
+  document.getElementById('f-email').value = c.email;
+  document.getElementById('f-phone').value = c.phone;
+
+  document.getElementById('profileBox').innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div class="user-avatar" style="width:48px;height:48px;font-size:20px;background:${c.status==='blocked'?'linear-gradient(135deg,var(--red),#c2185b)':'linear-gradient(135deg,var(--accent),#8b5cf6)'}">${c.name[0]}</div>
+      <div>
+        <div style="font-weight:700;font-size:15px">${c.name}</div>
+        <div style="font-size:12px;color:var(--muted)">${c.email}</div>
+      </div>
+    </div>
+    <div style="display:grid;gap:8px;font-size:13px">
+      <div class="cust-info-row"><span style="color:var(--muted)">Phone</span><strong>${c.phone}</strong></div>
+      <div class="cust-info-row"><span style="color:var(--muted)">Card</span><strong style="font-family:var(--mono)">${c.card}</strong></div>
+      <div class="cust-info-row"><span style="color:var(--muted)">Status</span><span class="status-badge ${c.status}">${c.status.toUpperCase()}</span></div>
+      <div class="cust-info-row"><span style="color:var(--muted)">Risk Level</span><span class="risk-badge ${c.risk}">${c.risk}</span></div>
+    </div>`;
+}
+
+async function loadSample(type){
+  try{
+    const r = await fetch('/api/samples',{credentials:'include'});
+    const d = await r.json();
+    const s = d[type];
+    if(!s) return;
+    document.getElementById('f-amount').value   = s.amount;
+    document.getElementById('f-v1').value       = s.v1;
+    document.getElementById('f-v4').value       = s.v4;
+    document.getElementById('f-v12').value      = s.v12;
+    document.getElementById('f-v14').value      = s.v14;
+    document.getElementById('f-v17').value      = s.v17;
+    document.getElementById('f-location').value = s.location;
+    document.getElementById('f-merchant').value = s.merchant;
+    toast((type==='fraud'?'🔴 Fraud':'🟢 Safe')+' sample loaded','info');
+  }catch(e){
+    // offline samples
+    if(type==='fraud'){
+      document.getElementById('f-amount').value=2.69;
+      document.getElementById('f-v1').value=-3.04; document.getElementById('f-v4').value=-4.28;
+      document.getElementById('f-v12').value=-9.50; document.getElementById('f-v14').value=-16.89;
+      document.getElementById('f-v17').value=-3.75;
+      document.getElementById('f-location').value='Foreign'; document.getElementById('f-merchant').value='Unknown';
+    } else {
+      document.getElementById('f-amount').value=149.62;
+      document.getElementById('f-v1').value=-1.36; document.getElementById('f-v4').value=1.38;
+      document.getElementById('f-v12').value=-0.185; document.getElementById('f-v14').value=-0.311;
+      document.getElementById('f-v17').value=0.207;
+      document.getElementById('f-location').value='Hyderabad'; document.getElementById('f-merchant').value='Amazon';
+    }
+    toast((type==='fraud'?'🔴 Fraud':'🟢 Safe')+' sample loaded','info');
+  }
+}
+
+async function runDetection(){
+  const amount = parseFloat(document.getElementById('f-amount').value);
+  if(!amount){ toast('⚠ Please enter an amount','info'); return; }
+
+  document.getElementById('detectLoader').classList.add('show');
+  document.getElementById('resultBox').style.display='none';
+
+  const payload={
+    amount, v1:  +document.getElementById('f-v1').value  ||0,
+            v4:  +document.getElementById('f-v4').value  ||0,
+            v12: +document.getElementById('f-v12').value ||0,
+            v14: +document.getElementById('f-v14').value ||0,
+            v17: +document.getElementById('f-v17').value ||0,
+    email:       document.getElementById('f-email').value.trim(),
+    phone:       document.getElementById('f-phone').value.trim(),
+    name:        document.getElementById('f-name').value.trim(),
+    customer_id: document.getElementById('f-cid').value||'C001',
+    location:    document.getElementById('f-location').value.trim()||'Unknown',
+    merchant:    document.getElementById('f-merchant').value.trim()||'Unknown',
+  };
+
+  try{
+    const r = await fetch('/api/predict',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),credentials:'include'});
+    const d = await r.json();
+
+    document.getElementById('detectLoader').classList.remove('show');
+    showResult(d, payload);
+  } catch(e){
+    // Offline simulation
+    document.getElementById('detectLoader').classList.remove('show');
+    const prob = simulateFraud(payload);
+    const isFraud = prob > 0.5;
+    const risk = prob>0.7?'HIGH':prob>0.4?'MEDIUM':'LOW';
+    showResult({fraud:isFraud,probability:prob,risk,amount,id:'TXN-'+Math.floor(Math.random()*900000+100000),
+      alert_sent:{email:!!payload.email,sms:!!payload.phone}}, payload);
+  }
+}
+
+function simulateFraud(p){
+  let prob=0.04;
+  if(Math.abs(p.v14)>5) prob+=0.38;
+  if(Math.abs(p.v14)>10) prob+=0.26;
+  if(p.v4<-2) prob+=0.20;
+  if(Math.abs(p.v12)>5) prob+=0.15;
+  if(Math.abs(p.v17)>3) prob+=0.10;
+  if(p.amount>0&&p.amount<5) prob+=0.08;
+  if(p.v1<-3) prob+=0.12;
+  return Math.max(0.02,Math.min(0.98,prob+Math.random()*0.04-0.02));
+}
+
+function showResult(d, payload){
+  const box   = document.getElementById('resultBox');
+  const badge = document.getElementById('resultBadge');
+  const bar   = document.getElementById('resultBar');
+  const pct   = Math.round(d.probability*100);
+
+  box.style.display='block';
+  box.className='result-box '+(d.fraud?'fraud-result':'safe-result');
+  badge.textContent = d.fraud ? '⚠ FRAUD DETECTED' : '✓ TRANSACTION SAFE';
+  badge.className   = 'result-badge '+(d.fraud?'fraud':'safe');
+  document.getElementById('resultMsg').textContent =
+    d.fraud ? `This transaction has a ${pct}% fraud probability. Alert sent to customer.`
+            : `This transaction appears safe with only ${pct}% fraud probability.`;
+  bar.style.width   = pct+'%';
+  bar.style.background = d.fraud ? 'var(--red)' : 'var(--green)';
+  document.getElementById('r-prob').textContent = pct+'%';
+  document.getElementById('r-risk').textContent = d.risk;
+  document.getElementById('r-txn').textContent  = (d.id||'').replace('TXN-','');
+
+  const notice = document.getElementById('alertNotice');
+  if(d.fraud && (d.alert_sent?.email || d.alert_sent?.sms)){
+    notice.style.display='flex';
+    let msg='🔔 Alert sent: ';
+    if(d.alert_sent.email && payload.email) msg+='📧 '+payload.email+'  ';
+    if(d.alert_sent.sms   && payload.phone) msg+='📱 '+payload.phone;
+    notice.textContent=msg;
+  } else { notice.style.display='none'; }
+
+  // Feature importance
+  document.getElementById('featureBox').innerHTML=`
+    <ul class="feature-list">
+      ${Object.entries({
+        'V14 (Key Feature)':38.2,'V12':19.7,'V4':15.3,'V17':12.1,'V1':8.9,'Amount':5.8
+      }).map(([k,v])=>`<li class="feature-item">
+        <div class="feature-header"><span class="feature-name">${k}</span><span class="feature-pct">${v}%</span></div>
+        <div class="feature-bar"><div class="feature-bar-fill" style="width:${v}%"></div></div>
+      </li>`).join('')}
+    </ul>`;
+
+  toast(d.fraud ? '🔴 FRAUD DETECTED — ₹'+d.amount.toFixed(2) : '✅ Safe — ₹'+d.amount.toFixed(2),
+        d.fraud ? 'fraud' : 'safe');
+}
+
+function clearForm(){
+  ['amount','v1','v4','v12','v14','v17','email','phone','name','location','merchant'].forEach(k=>{
+    const el=document.getElementById('f-'+k); if(el) el.value='';
+  });
+  document.getElementById('f-cid').value='';
+  document.getElementById('resultBox').style.display='none';
+  document.getElementById('profileBox').innerHTML='<div class="empty" style="padding:20px">Select a customer</div>';
+  document.getElementById('featureBox').innerHTML='<div class="empty" style="padding:20px">Run a detection first</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+//  TRANSACTIONS
+// ═══════════════════════════════════════════════════════
+let txnFilter='all';
+async function loadTransactions(){
+  try{
+    const r=await fetch('/api/transactions',{credentials:'include'});
+    allTxns=await r.json();
+  } catch(e){ if(!allTxns.length) allTxns=SAMPLE_TXNS; }
+  renderTransactions();
+}
+function filterTxns(f,btn){
+  txnFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTransactions();
+}
+function renderTransactions(){
+  let data=allTxns;
+  if(txnFilter==='fraud')  data=data.filter(t=>t.fraud);
+  if(txnFilter==='safe')   data=data.filter(t=>!t.fraud);
+  if(txnFilter==='HIGH')   data=data.filter(t=>t.risk==='HIGH');
+  const tbody=document.getElementById('mainTxnBody');
+  tbody.innerHTML=data.slice(0,50).map(t=>`
+    <tr>
+      <td class="txn-id">${t.id}</td>
+      <td>${t.name}</td>
+      <td style="font-family:var(--mono)">₹${parseFloat(t.amount).toFixed(2)}</td>
+      <td><span class="fraud-dot ${t.fraud?'yes':'no'}"></span>${t.fraud?'<span style="color:var(--red);font-weight:700">FRAUD</span>':'<span style="color:var(--green)">SAFE</span>'}</td>
+      <td><span class="risk-badge ${t.risk}">${t.risk}</span></td>
+      <td style="font-family:var(--mono)">${(t.prob*100).toFixed(1)}%</td>
+      <td style="color:var(--muted)">${t.location||'—'}</td>
+      <td style="color:var(--muted)">${t.merchant||'—'}</td>
+      <td style="font-family:var(--mono);color:var(--muted)">${t.time}</td>
+    </tr>`).join('');
+}
+async function exportTxns(){
+  try{
+    window.location='/api/export/transactions';
+  } catch(e){ toast('Export failed','info'); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  ALERTS
+// ═══════════════════════════════════════════════════════
+async function loadAlerts(){
+  try{
+    const r=await fetch('/api/alerts',{credentials:'include'});
+    allAlerts=await r.json();
+  } catch(e){ }
+  renderAlerts();
+  const unread=allAlerts.filter(a=>!a.read).length;
+  const badge=document.getElementById('alertBadge');
+  if(unread>0){badge.style.display='flex';badge.textContent=unread;}
+  else{badge.style.display='none';}
+}
+function renderAlerts(){
+  const list=document.getElementById('alertsList');
+  if(!allAlerts.length){
+    list.innerHTML='<div class="empty"><div class="empty-icon">🔔</div>No fraud alerts yet. Run a detection to see alerts here.</div>';
+    return;
+  }
+  list.innerHTML=allAlerts.map(a=>`
+    <div class="alert-item ${a.read?'read':''}" id="alert-${a.id}">
+      <div class="alert-icon ${a.read?'read':''}">⚠</div>
+      <div style="flex:1">
+        <div class="alert-title ${a.read?'read':''}">Fraud Alert — ₹${parseFloat(a.amount).toFixed(2)}</div>
+        <div class="alert-sub">${a.id} · ${a.customer} · Risk: <strong style="color:var(--red)">${a.risk}</strong> · ${a.time}</div>
+        ${a.email||a.phone?`<div class="alert-contact">
+          ${a.email?'📧 '+a.email:''}
+          ${a.phone?' · 📱 '+a.phone:''}</div>`:''}
+      </div>
+      ${!a.read?`<button class="alert-mark" onclick="markRead('${a.id}')">✓ Mark Read</button>`:'<span style="font-size:11px;color:var(--muted2)">Read</span>'}
+    </div>`).join('');
+}
+async function markRead(id){
+  try{ await fetch('/api/alerts/'+id+'/read',{method:'POST',credentials:'include'}); }catch(e){}
+  const a=allAlerts.find(x=>x.id===id);
+  if(a){ a.read=true; renderAlerts(); }
+  const unread=allAlerts.filter(a=>!a.read).length;
+  const badge=document.getElementById('alertBadge');
+  if(unread>0){badge.style.display='flex';badge.textContent=unread;}else{badge.style.display='none';}
+}
+async function markAllRead(){
+  for(const a of allAlerts){ if(!a.read){ try{ await fetch('/api/alerts/'+a.id+'/read',{method:'POST',credentials:'include'}); }catch(e){} a.read=true; } }
+  renderAlerts();
+  document.getElementById('alertBadge').style.display='none';
+  toast('All alerts marked as read','info');
+}
+
+// ═══════════════════════════════════════════════════════
+//  CUSTOMERS
+// ═══════════════════════════════════════════════════════
+async function loadCustomers(){
+  let customers=[];
+  try{
+    const r=await fetch('/api/customers',{credentials:'include'});
+    customers=await r.json();
+  } catch(e){
+    customers=Object.entries(CUSTOMERS_LOCAL).map(([id,c])=>({id,...c}));
+  }
+  const grid=document.getElementById('customersGrid');
+  grid.innerHTML=customers.map(c=>`
+    <div class="customer-card ${c.status==='blocked'?'blocked':''}">
+      <div class="cust-top">
+        <div class="cust-avatar ${c.status==='blocked'?'blocked':''}">${c.name[0]}</div>
+        <div>
+          <div class="cust-name">${c.name}</div>
+          <div class="cust-email">${c.email}</div>
+        </div>
+      </div>
+      <div class="cust-badges">
+        <span class="status-badge ${c.status}">${c.status.toUpperCase()}</span>
+        <span class="risk-badge ${c.risk}">${c.risk}</span>
+      </div>
+      <div class="cust-info-row"><span>Phone</span><strong style="font-family:var(--mono)">${c.phone||'—'}</strong></div>
+      <div class="cust-info-row"><span>Card</span><strong style="font-family:var(--mono)">${c.card||'—'}</strong></div>
+      ${c.balance!=null?`<div class="cust-info-row"><span>Balance</span><strong>₹${parseFloat(c.balance||0).toLocaleString('en-IN')}</strong></div>`:''}
+      <div class="cust-info-row"><span>Joined</span><strong>${c.joined||'—'}</strong></div>
+      <div class="cust-actions">
+        ${c.status==='active'
+          ?`<button class="btn btn-danger" onclick="blockCard('${c.id||c.cid}',this)">🚫 Block</button>`
+          :`<button class="btn btn-success" onclick="unblockCard('${c.id||c.cid}',this)">✓ Unblock</button>`}
+        <button class="btn btn-outline" onclick="detectForCustomer('${c.id||c.cid}')">🔍 Detect</button>
+      </div>
+    </div>`).join('');
+}
+function detectForCustomer(cid){
+  showPage('detect', document.querySelector('[onclick*=detect]'));
+  document.getElementById('f-cid').value=cid;
+  fillCustomerData(cid);
+}
+async function blockCard(cid,btn){
+  try{ await fetch('/api/customers/'+cid+'/block',{method:'POST',credentials:'include'}); }catch(e){}
+  if(CUSTOMERS_LOCAL[cid]){ CUSTOMERS_LOCAL[cid].status='blocked'; CUSTOMERS_LOCAL[cid].risk='HIGH'; }
+  toast('🚫 Card blocked — '+cid,'info');
+  loadCustomers();
+}
+async function unblockCard(cid,btn){
+  try{ await fetch('/api/customers/'+cid+'/unblock',{method:'POST',credentials:'include'}); }catch(e){}
+  if(CUSTOMERS_LOCAL[cid]){ CUSTOMERS_LOCAL[cid].status='active'; CUSTOMERS_LOCAL[cid].risk='LOW'; }
+  toast('✅ Card unblocked — '+cid,'info');
+  loadCustomers();
+}
+
+// ADD CUSTOMER
+function openAddCustomer(){ document.getElementById('addCustomerModal').classList.add('open'); }
+function closeAddCustomer(){ document.getElementById('addCustomerModal').classList.remove('open'); }
+async function submitAddCustomer(){
+  const name   = document.getElementById('nc-name').value.trim();
+  const email  = document.getElementById('nc-email').value.trim();
+  const phone  = document.getElementById('nc-phone').value.trim();
+  const balance= document.getElementById('nc-balance').value||'0';
+  if(!name||!email){ toast('⚠ Name and Email are required','info'); return; }
+  try{
+    const r=await fetch('/api/customers/add',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,email,phone,balance}),credentials:'include'});
+    const d=await r.json();
+    if(d.success){
+      CUSTOMERS_LOCAL[d.id]={name,email,phone,card:d.card,status:'active',risk:'LOW'};
+      closeAddCustomer();
+      loadCustomers();
+      toast('✅ Customer added: '+name,'safe');
+      ['nc-name','nc-email','nc-phone','nc-balance'].forEach(id=>document.getElementById(id).value='');
+    }
+  } catch(e){
+    // offline
+    const fakeId='C'+Math.floor(Math.random()*900+100);
+    CUSTOMERS_LOCAL[fakeId]={name,email,phone,card:'**** **** **** '+Math.floor(Math.random()*9000+1000),status:'active',risk:'LOW'};
+    closeAddCustomer();
+    loadCustomers();
+    toast('✅ Customer added: '+name,'safe');
+    ['nc-name','nc-email','nc-phone','nc-balance'].forEach(id=>document.getElementById(id).value='');
+  }
+}
+document.getElementById('addCustomerModal').addEventListener('click',function(e){ if(e.target===this) closeAddCustomer(); });
+
+// ═══════════════════════════════════════════════════════
+//  BLOCKED CARDS
+// ═══════════════════════════════════════════════════════
+async function loadBlocked(){
+  let blocked=[];
+  try{
+    const r=await fetch('/api/blocked',{credentials:'include'});
+    blocked=await r.json();
+  } catch(e){
+    blocked=[
+      {card:'**** **** **** 2341',customer:'Arjun Mehta', reason:'Multiple fraud attempts',date:'2025-01-10',amount:'₹18,450',cid:'C003'},
+      {card:'**** **** **** 8812',customer:'Unknown',     reason:'Stolen card reported',   date:'2025-01-15',amount:'₹2,100', cid:null},
+    ];
+  }
+  document.getElementById('blockedCount').textContent=blocked.length+' blocked';
+  document.getElementById('blockedBody').innerHTML=blocked.map(b=>`
+    <tr>
+      <td style="font-family:var(--mono);color:var(--red)">${b.card}</td>
+      <td>${b.customer}</td>
+      <td>${b.reason}</td>
+      <td style="font-family:var(--mono);color:var(--muted)">${b.date}</td>
+      <td style="font-family:var(--mono)">${b.amount}</td>
+      <td>${b.cid?`<button class="btn btn-success btn-sm" onclick="unblockCard('${b.cid}',this)">Unblock</button>`:'<span style="color:var(--muted2);font-size:12px">N/A</span>'}</td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  ANALYTICS
+// ═══════════════════════════════════════════════════════
+async function loadAnalytics(){
+  try{
+    const r=await fetch('/api/analytics',{credentials:'include'});
+    const d=await r.json();
+    document.getElementById('a-acc').textContent  = d.accuracy+'%';
+    document.getElementById('a-prec').textContent = d.precision+'%';
+    document.getElementById('a-rec').textContent  = d.recall+'%';
+    document.getElementById('a-f1').textContent   = d.f1+'%';
+    document.getElementById('a-total-amt').textContent = '₹'+d.total_amount.toLocaleString('en-IN');
+    document.getElementById('a-fraud-amt').textContent = '₹'+d.fraud_amount.toLocaleString('en-IN');
+    document.getElementById('a-saved').textContent     = '₹'+(d.total_amount-d.fraud_amount).toLocaleString('en-IN');
+    drawBarChart('analyticsBarChart',d.daily);
+    drawRiskChart('analyticsRiskChart',d.risk_counts);
+    const fi = d.feature_importance;
+    document.getElementById('featureImportanceList').innerHTML=
+      Object.entries(fi).map(([k,v])=>`<li class="feature-item">
+        <div class="feature-header"><span class="feature-name">${k}</span><span class="feature-pct">${v}%</span></div>
+        <div class="feature-bar"><div class="feature-bar-fill" style="width:${v}%"></div></div>
+      </li>`).join('');
+  } catch(e){
+    document.getElementById('a-acc').textContent='97.8%';
+    document.getElementById('a-prec').textContent='96.2%';
+    document.getElementById('a-rec').textContent='94.5%';
+    document.getElementById('a-f1').textContent='95.3%';
+    document.getElementById('a-total-amt').textContent='₹1,24,250';
+    document.getElementById('a-fraud-amt').textContent='₹12,650';
+    document.getElementById('a-saved').textContent='₹1,11,600';
+    drawRiskChart('analyticsRiskChart',{HIGH:4,MEDIUM:3,LOW:8});
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+let toastTimer;
+function toast(msg, type='info'){
+  const el=document.getElementById('toastEl');
+  el.textContent=msg;
+  el.className='toast show '+(type==='fraud'?'fraud-toast':type==='safe'?'safe-toast':'info-toast');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+(async ()=>{
+  try{
+    const r=await fetch('/api/me',{credentials:'include'});
+    const d=await r.json();
+    if(d.logged_in){
+      userRole=d.role; userName=d.name;
+      document.getElementById('sidebarName').textContent=d.name;
+      document.getElementById('sidebarRole').textContent=d.role;
+      document.getElementById('sidebarAvatar').textContent=d.name[0];
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('app').style.display='block';
+      loadPage('dashboard');
+    }
+  }catch(e){ /* show login */ }
+})();
+</script>
+</body>
+</html>
